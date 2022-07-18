@@ -1,28 +1,18 @@
-#volume-visualizer {
-    --volume: 0%;
-    position: relative;
-    width: 200px;
-    height: 20px;
-    margin: 50px;
-    background-color: #DDD;
-  }
-  
-#volume-visualizer::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    width: var(--volume);
-    background-color: green;
-    transition: width 100ms linear;
+.pids-wrapper{
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 4px;
+    width: 80px;
+    height: 8px;
+    flex: none;
+    order: 0;
+    flex-grow: 0;
 }
-
-button {
-    margin-left: 50px;
-}
-
-h3 {
-    margin: 20px;
-    font-family: sans-serif;
+.pid{
+    width: 8px;
+    height: 8px;
+    display: inline-block;
+    border-radius: 12px;
 }

@@ -1,75 +1,73 @@
 import React, { useEffect } from 'react'
 import './VolumeMeter.css';
+import styled from 'styled-components';
+
+
+export const Circle = styled.div<{color: string;}>`
+  width: 8px;
+  height: 8px;
+
+  background: ${(props) => props.color};
+  border-radius: 12px;
+`
 
 const VolumeMeter = () => {
-    useEffect(() => {
-        (async () => {
-            let volumeCallback = null;
-            let volumeInterval = null;
-            const volumeVisualizer = document.getElementById('volume-visualizer') as HTMLElement;
-            const startButton = document.getElementById('start') as HTMLElement;
-            const stopButton = document.getElementById('stop') as HTMLElement;
-            // Initialize
-            try {
-              const audioStream = await navigator.mediaDevices.getUserMedia({
-                audio: {
-                  echoCancellation: true
-                }
-              });
-              const audioContext = new AudioContext();
-              const audioSource = audioContext.createMediaStreamSource(audioStream);
-              const analyser = audioContext.createAnalyser();
-              analyser.fftSize = 512;
-              analyser.minDecibels = -127;
-              analyser.maxDecibels = 0;
-              analyser.smoothingTimeConstant = 0.4;
-              audioSource.connect(analyser);
-              const volumes = new Uint8Array(analyser.frequencyBinCount);
-              volumeCallback = () => {
-                analyser.getByteFrequencyData(volumes);
-                let volumeSum = 0;
-                for(const volume of volumes as any)
-                  volumeSum += volume;
-                const averageVolume = volumeSum / volumes.length;
-                // Value range: 127 = analyser.maxDecibels - analyser.minDecibels;
-                volumeVisualizer.style.setProperty('--volume', (averageVolume * 100 / 127) + '%');
-              };
-            } catch(e) {
-              console.error('Failed to initialize volume visualizer, simulating instead...', e);
-              // Simulation
-              //TODO remove in production!
-              let lastVolume = 50;
-              volumeCallback = () => {
-                const volume = Math.min(Math.max(Math.random() * 100, 0.8 * lastVolume), 1.2 * lastVolume);
-                lastVolume = volume;
-                volumeVisualizer.style.setProperty('--volume', volume + '%');
-              };
-            }
-            // Use
-            // 클릭해야 시작하게
-            // startButton.addEventListener('click', () => {
-            //   // Updating every 100ms (should be same as CSS transition speed)
-            //   if(volumeCallback !== null && volumeInterval === null)
-            //     volumeInterval = setInterval(volumeCallback, 100);
-            // });
-            // stopButton.addEventListener('click', () => {
-            //   if(volumeInterval !== null) {
-            //     clearInterval(volumeInterval);
-            //     volumeInterval = null;
-            //   }
-            // });
 
-            // 창 열자마자 자동으로 시작하게
-            if(volumeCallback !== null && volumeInterval === null)
-            volumeInterval = setInterval(volumeCallback, 100);
-          })();
-    }, [])
+  function colorPids(vol: number) {
+    const allPids = [...document.querySelectorAll('.pid') as any];
+    const numberOfPidsToColor = Math.round(vol / 7);
+    const pidsToColor = allPids.slice(0, numberOfPidsToColor);
+    for (const pid of allPids) {
+      pid.style.backgroundColor = "#e6e7e8";
+    }
+    for (let i = 0; i < pidsToColor.length; i++) {
+      pidsToColor[i].style="display:block";
+    }
+  }
+
+  useEffect(() => {
+      (async () => {
+          navigator.mediaDevices.getUserMedia({
+            audio: true,
+            video: true
+          })
+            .then(function(stream) {
+              const audioContext = new AudioContext();
+              const analyser = audioContext.createAnalyser();
+              const microphone = audioContext.createMediaStreamSource(stream);
+              const scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
+          
+              analyser.smoothingTimeConstant = 0.8;
+              analyser.fftSize = 1024;
+          
+              microphone.connect(analyser);
+              analyser.connect(scriptProcessor);
+              scriptProcessor.connect(audioContext.destination);
+              scriptProcessor.onaudioprocess = function() {
+                const array = new Uint8Array(analyser.frequencyBinCount);
+                analyser.getByteFrequencyData(array);
+                const arraySum = array.reduce((a, value) => a + value, 0);
+                const average = arraySum / array.length;
+                colorPids(average);
+              };
+            })
+            .catch(function(err) {
+              console.error(err);
+            });
+        })();
+  }, [])
     
     return (
         <div>
-            <div id="volume-visualizer"></div>
-            <button id="start">Start</button>
-            <button id="stop">Stop</button>
+          <div className="pids-wrapper">
+            <Circle className='pid' color='#FFB74A'/>
+            <Circle className='pid' color='#4DC660'/>
+            <Circle className='pid' color='#4DC65F'/>
+            <Circle className='pid' color='#4DC65F'/>
+            <Circle className='pid' color='#4DC65F'/>
+            <Circle className='pid' color='#DE6565'/>
+            <Circle className='pid' color='#DE6565'/>
+          </div>
         </div>
     )
 }
